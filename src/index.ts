@@ -40,7 +40,7 @@ const upload = multer({
   } });
 
 app.get('/version', async function versionHandler(req, res) {
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   const version = await browser.version()
   console.log(version);
   res.status(200).send(version);
