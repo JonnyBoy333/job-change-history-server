@@ -213,7 +213,7 @@ app.post('/api/start', upload.fields(fields), async (req: any, res, next) => {
     // res.type('image/png').send(buffer);
   } catch (err) {
     console.error(err);
-    res.json({ result: 'error', error: { message: err.toString() } });
+    res.json({ result: 'error', error: { message: err.message } });
   }
   await browser.disconnect();
   res.json({ result: 'success' });
@@ -270,7 +270,7 @@ app.get('/api/authmethod', async (req, res, next) => {
     db.ref(`users/${uid}/job`).update({ endpoint: newEndpoint });
   } catch (err) {
     console.error(err);
-    res.json({ result: 'error', error: { message: err.toString() } });
+    res.json({ result: 'error', error: { message: err.message } });
   }
   res.json({ result: 'success' });
 });
@@ -320,7 +320,7 @@ app.get('/api/authcode', async (req, res, next) => {
     browser.disconnect();
   } catch (err) {
     console.error(err);
-    res.json({ result: 'error', error: { message: err.toString() } });
+    res.json({ result: 'error', error: { message: err.message } });
   }
   duration(d, 'after completion');
 
