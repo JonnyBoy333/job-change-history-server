@@ -3,20 +3,6 @@ import * as admin from 'firebase-admin';
 import * as puppeteer from 'puppeteer';
 import * as multer from 'multer';
 import * as fs from 'fs';
-// import * as Storage from '@google-cloud/storage';
-
-// const { promisify, format } = require('util');
-// const readFileAsync = promisify(fs.readFile);
-// import upload from './modules/upload';
-
-// const config = {
-//   apiKey: 'AIzaSyDcHFZsPCCNNUGMmv_guJmiQA6sSrIgYbU',
-//   authDomain: 'kpay-automator.firebaseapp.com',
-//   databaseURL: 'https://kpay-automator.firebaseio.com',
-//   projectId: 'kpay-automator',
-//   storageBucket: 'kpay-automator.appspot.com',
-//   messagingSenderId: '949570070359'
-// };
 
 const serviceAccount = require('./certs/kpay-automator-firebase-adminsdk-kxlz0-37f4666e1c.json');
 // import serviceAccount from './certs/kpay-automator-firebase-adminsdk-kxlz0-37f4666e1c.json';
@@ -27,17 +13,17 @@ if (!admin.apps.length) {
     credential: admin.credential.cert(serviceAccount),
     databaseURL: 'https://kpay-automator.firebaseio.com'
   });
-  // admin.initializeApp(config)
 }
 const app = express();
 const db = admin.database();
 const tempFolder = process.env.NODE_ENV === 'production' ? '/tmp' : './tmp';
 // const upload = multer({ dest: tempFolder });
-const upload = multer({ 
+const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 5 * 1024 * 1024 // no larger than 5mb, you can change as needed.
-  } });
+  }
+});
 
 app.get('/version', async function versionHandler(req, res) {
   const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -144,21 +130,6 @@ app.post('/api/start', upload.fields(fields), async (req: any, res, next) => {
     return;
   }
 
-  // Create a new blob in the bucket and upload the file data.
-  // const blob = bucket.file(req.file.originalname);
-  // const blobStream = blob.createWriteStream();
-
-  // blobStream.on('error', (err) => {
-  //   next(err);
-  // });
-
-  // blobStream.on('finish', () => {
-  //   // The public URL can be used to directly access the file via HTTP.
-  //   const publicUrl = format(`https://storage.googleapis.com/${bucket.name}/${blob.name}`);
-  // });
-
-  // blobStream.end(req.file.buffer);
-
   fs.writeFile(`${tempFolder}/${uid}.csv`, mappingFiles[0].buffer, (err) => {
     // throws an error, you could also catch it here
     if (err) throw err;
@@ -197,7 +168,6 @@ app.post('/api/start', upload.fields(fields), async (req: any, res, next) => {
 
   console.log('Start the main process');
 
-  // const browser = res.locals.browser;
   const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
   try {
     const page = await browser.newPage();
@@ -233,27 +203,20 @@ app.post('/api/start', upload.fields(fields), async (req: any, res, next) => {
     // Wait for 2FA auth method selection
     if (has2FA) {
       const endpoint = browser.wsEndpoint();
-      // db.ref(`users/${uid}/job/2FA`).update({ has2FA: true });
       db.ref(`users/${uid}/job`).update({
         endpoint,
-        '2FA': {
-          authMethod: '',
-          code: '',
-          defeated: false,
-          has2FA: true
-        }
+        '2FA': { authMethod: '', code: '', defeated: false, has2FA: true }
       });
     }
-    // await page.screenshot({ path: 'images/2-homepage.png' });
 
-    const buffer = await page.screenshot();
-    res.type('image/png').send(buffer);
+    // const buffer = await page.screenshot();
+    // res.type('image/png').send(buffer);
   } catch (err) {
     console.error(err);
-    res.json({ result: 'error' });
+    res.json({ result: 'error', error: { message: err.toString() } });
   }
   await browser.disconnect();
-  // res.json({ result: 'success' });
+  res.json({ result: 'success' });
 });
 
 app.get('/api/authmethod', async (req, res, next) => {
@@ -307,8 +270,9 @@ app.get('/api/authmethod', async (req, res, next) => {
     db.ref(`users/${uid}/job`).update({ endpoint: newEndpoint });
   } catch (err) {
     console.error(err);
-    res.json({ result: 'error', error: { message: err } });
+    res.json({ result: 'error', error: { message: err.toString() } });
   }
+  res.json({ result: 'success' });
 });
 
 app.get('/api/authcode', async (req, res, next) => {
@@ -356,10 +320,11 @@ app.get('/api/authcode', async (req, res, next) => {
     browser.disconnect();
   } catch (err) {
     console.error(err);
-    res.json({ result: 'error', error: { message: err } });
+    res.json({ result: 'error', error: { message: err.toString() } });
   }
-
   duration(d, 'after completion');
+
+  res.json({ result: 'success' });
 });
 
 function duration(d, message) {
