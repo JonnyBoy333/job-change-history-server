@@ -1,8 +1,9 @@
 import * as express from 'express';
 import * as admin from 'firebase-admin';
 import * as puppeteer from 'puppeteer';
-import * as multer from 'multer';
+// import * as multer from 'multer';
 import * as fs from 'fs';
+import upload from './modules/upload';
 
 const serviceAccount = require('./certs/kpay-automator-firebase-adminsdk-kxlz0-37f4666e1c.json');
 // import serviceAccount from './certs/kpay-automator-firebase-adminsdk-kxlz0-37f4666e1c.json';
@@ -24,13 +25,15 @@ app.use(function(req, res, next) {
   next();
 });
 
+upload(app);
+
 // const upload = multer({ dest: tempFolder });
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 5 * 1024 * 1024 // no larger than 5mb, you can change as needed.
-  }
-});
+// const upload = multer({
+//   storage: multer.memoryStorage(),
+//   limits: {
+//     fileSize: 10 * 1024 * 1024 // no larger than 5mb, you can change as needed.
+//   }
+// });
 
 app.get('/version', async function versionHandler(req, res) {
   const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
@@ -94,45 +97,51 @@ const canceledJobState = {
 
 const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-const fields = [
-  { name: 'leader-list', maxCount: 1 }
-];
+// const fields = [
+//   { name: 'leader-list', maxCount: 1 }
+// ];
 
-app.post('/api/start', upload.fields(fields), async (req: any, res, next) => {
+// app.post('/api/start', upload.single('leader-list'), async (req: any, res, next) => {
+  app.post('/api/start', async (req: any, res, next) => {
+  
 
   const d = (new Date()).getTime();
 
-  const { username, password, shortname, loginredirect, uid } = req.body;
+  // const { username, password, shortname, loginredirect, uid } = req.body;
+  const { username, password, shortname, loginredirect, uid } = req.fields;
 
   // Create the job object in the database
   console.log('Update job');
   db.ref(`users/${uid}`).update(initialJobState);
 
   // const body = req.body;
-  console.log('Body', req.body);
+  console.log('Body', req.fields);
   console.log('Files', req.files);
-  const mappingFiles = req.files['leader-list'];
+  // const mappingFiles = req.files['leader-list'];
+  const mappingFiles = req.files;
 
   // A bucket is a container for objects (files).
   // const bucket = Storage.bucket('puppeteer-test-app.appspot.com');
 
   // Validate mapping file
-  if (mappingFiles) {
+  if (mappingFiles.length > 0) {
     const mappingFileName = mappingFiles[0].originalname;
-    const extension = mappingFileName.substr(mappingFileName.length - 4);
-    console.log('Extension', extension);
-    if (mappingFileName.substr(mappingFileName.length - 4) !== '.csv') {
-      console.log('Incorrect File Type');
-      res.send({
-        status: 'failure',
-        message: 'Incorrect leader list file type, must be a CSV file.'
-      });
-      return;
+    if (mappingFileName) {
+      const extension = mappingFileName.substr(mappingFileName.length - 4);
+      console.log('Extension', extension);
+      if (mappingFileName.substr(mappingFileName.length - 4) !== '.csv') {
+        console.log('Incorrect File Type');
+        res.send({
+          status: 'failure',
+          error: { message: 'Incorrect leader list file type, must be a CSV file.' }
+        });
+        return;
+      }
     }
   } else {
     res.send({
       status: 'failure',
-      message: 'Please upload a leader file list.'
+      error: { message: 'Please upload a leader file list.' }
     });
     return;
   }
