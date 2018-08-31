@@ -234,6 +234,7 @@ app.get('/api/authmethod', async (req, res, next) => {
 
   if (!authmethod) {
     res.json({ result: 'error', error: { message: 'No Auth Method Specified' } });
+    return;
   }
   db.ref(`users/${uid}/job/2FA`).update({ authMethod: authmethod });
 
@@ -269,9 +270,7 @@ app.get('/api/authmethod', async (req, res, next) => {
     await page.waitForNavigation();
     await takeScreenshot(uid, page);
     duration(d, 'after sent auth message');
-    // res.json({ result: 'success' });
-    const buffer = await page.screenshot();
-    res.type('image/png').send(buffer);
+    res.json({ result: 'success' });
 
     const newEndpoint = browser.wsEndpoint();
     db.ref(`users/${uid}/job`).update({ endpoint: newEndpoint });
@@ -279,7 +278,6 @@ app.get('/api/authmethod', async (req, res, next) => {
     console.error(err);
     res.json({ result: 'error', error: { message: err.message } });
   }
-  res.json({ result: 'success' });
 });
 
 app.get('/api/authcode', async (req, res, next) => {
@@ -290,6 +288,7 @@ app.get('/api/authcode', async (req, res, next) => {
 
   if (!authcode) {
     res.json({ result: 'error', error: { message: 'No Auth Code Specified' } });
+    return;
   }
   db.ref(`users/${uid}/job/2FA`).update({ code: authcode });
 
@@ -322,16 +321,15 @@ app.get('/api/authcode', async (req, res, next) => {
 
     db.ref(`users/${uid}/job/2FA`).update({ defeated: true });
     await takeScreenshot(uid, page);
-    const buffer = await page.screenshot();
-    res.type('image/png').send(buffer);
     browser.disconnect();
+
+    res.json({ result: 'success' });
   } catch (err) {
     console.error(err);
     res.json({ result: 'error', error: { message: err.message } });
   }
   duration(d, 'after completion');
 
-  res.json({ result: 'success' });
 });
 
 function duration(d, message) {
