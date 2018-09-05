@@ -35,7 +35,6 @@ router.post('/', upload.single('leader-list'), async (req: any, res, next) => {
   console.log('Update job');
   db.ref(`users/${uid}`).update(initialJobState);
 
-
   console.log('Body', req.body);
   console.log('Files', req.file);
   const leaderFile = req.file
@@ -73,7 +72,7 @@ router.post('/', upload.single('leader-list'), async (req: any, res, next) => {
   console.log('Start the main process');
   console.log('Environment', process.env.NODE_ENV);
 
-  const browser = await puppeteer.launch({ args: ['--no-sandbox'] });
+  const browser = await puppeteer.launch({ args: ['--no-sandbox', '--disable-setuid-sandbox'] });
   try {
     const page = await browser.newPage();
     page.setViewport(defaultViewport);
