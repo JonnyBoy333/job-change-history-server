@@ -2,7 +2,7 @@ import { db } from '../firebase';
 
 // Constants
 const defaultViewport = { width: 1200, height: 800 };
-const delay = process.env.NODE_ENV !== 'production' ? 800 : 0;
+const delay = process.env.NODE_ENV !== 'production' ? 800 : 800;
 const tempFolder = process.env.NODE_ENV === 'production' ? '/tmp' : './tmp';
 
 // How long did this take?

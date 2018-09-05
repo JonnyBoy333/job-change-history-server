@@ -64,9 +64,7 @@ router.post('/', upload.single('leader-list'), async (req: any, res, next) => {
   }
 
   const csvString = leaderFile.buffer.toString('utf8');
-  console.log('String', csvString);
   const leaderArr = csvToObj(csvString);
-  console.log('Leader Object', leaderArr);
   fs.writeFile(`${tempFolder}/${uid}.json`, JSON.stringify(leaderArr), (err) => {
     if (err) throw err;
   });

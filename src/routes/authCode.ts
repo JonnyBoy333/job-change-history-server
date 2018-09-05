@@ -36,11 +36,6 @@ router.get('/', async (req, res, next) => {
   const browser = await puppeteer.connect({ browserWSEndpoint: endpoint });
   res.json({ result: 'success' });
 
-  // fs.readFile(`${tempFolder}/${uid}.json`, (err, data) => {
-  //   if (err) throw err;
-  //   console.log(data);
-  // });
-
   // const employees = [{
   //   'Employee ID': '202',
   //   'Effective Date': '07/26/18',
@@ -48,9 +43,7 @@ router.get('/', async (req, res, next) => {
   // }];
 
   const text = await readFileAsync(`${tempFolder}/${uid}.json`, { encoding: 'utf8' });
-  console.log('Text', text);
   const employees = JSON.parse(text);
-  console.log('Object', employees);
   try {
 
     let page: puppeteer.Page;
@@ -58,7 +51,6 @@ router.get('/', async (req, res, next) => {
     for (let i = 0; i < pages.length; i++) {
       page = pages[i];
       const content = await page.evaluate(() => document.querySelector('body') ? document.querySelector('body').innerHTML : '');
-      console.log('Content Length', content.length);
       if (content.length > 0) {
         console.log('Showing page', i + 1);
         break;
@@ -147,6 +139,7 @@ router.get('/', async (req, res, next) => {
 
       // Loop through all Job Change History lines
       for (const line of lines) {
+        
         // Search for job change effective date
         await adminFrame.evaluate((effDate) => {
           (<HTMLInputElement>document.querySelector('input[name="zAN7M"]')).value = effDate;
@@ -190,10 +183,12 @@ router.get('/', async (req, res, next) => {
           const empSelectFrame = frames[employeeSelectFrameIndex];
 
           // Search for manager ID
+          const empSelectNavigation = empSelectFrame.waitForNavigation({ timeout: 100 });
           await empSelectFrame.evaluate((managerId) => {
             (<HTMLInputElement>document.querySelector('input[name="zAMF6"]')).value = managerId;
             (<HTMLInputElement>document.querySelector('a.reloadButton')).click();
           }, line.manager);
+          try { await empSelectNavigation } catch (e) { }
           await takeScreenshot(uid, page);
 
           // Click the flag and save
