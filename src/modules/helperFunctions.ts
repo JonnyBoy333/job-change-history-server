@@ -27,4 +27,43 @@ async function takeScreenshot(uid, page) {
 // Sleep
 const sleep = ms => new Promise(res => setTimeout(res, ms));
 
-export { duration, takeScreenshot, sleep, defaultViewport, delay, tempFolder }
+// Convert CSV To Object Helper Func
+function csvToObj(csv) {
+  const cleanedCsv = csv.replace(/\r/g, '').replace(/^\uFEFF/, '');
+  const lines = cleanedCsv.split('\n');
+  const results = [];
+  const headers = lines[0].split(',');
+
+  for (let i = 1; i < lines.length; i++) {
+    const obj = {};
+    const currentline = lines[i].split(',');
+    for (let j = 0; j < headers.length; j++) {
+      obj[headers[j]] = currentline[j];
+    }
+    results.push(obj);
+  }
+  console.log('Array before grouping', results);
+
+  const empArray = Object.values(results.reduce((result, emp) => {
+    const empId = emp['Employee ID'];
+    const effDate = emp['Effective Date'];
+    const manager = emp['Manager 1'];
+    // Create new group
+    if (!result[empId]) result[empId] = {
+      empId,
+      lines: []
+    };
+    // Append to group
+    result[empId].lines.push({
+      effDate,
+      manager
+    });
+    return result;
+  }, {}));
+
+  empArray.sort((a: any, b: any) => Number(a.empId) - Number(b.empId));
+
+  return empArray;
+}
+
+export { duration, takeScreenshot, sleep, defaultViewport, delay, tempFolder, csvToObj }

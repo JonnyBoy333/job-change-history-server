@@ -233,6 +233,11 @@ router.get('/', async (req, res, next) => {
 
     browser.disconnect();
 
+    // Cleanup
+    fs.unlink(`${tempFolder}/${uid}.json`, (err) => {
+      if (err) throw err;
+    });
+
   } catch (err) {
     console.error(err);
   }

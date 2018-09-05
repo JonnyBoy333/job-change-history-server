@@ -3,29 +3,20 @@ import * as puppeteer from 'puppeteer';
 import * as multer from 'multer';
 import { db } from '../firebase';
 import * as fs from 'fs';
-import { defaultViewport, duration, takeScreenshot, tempFolder } from '../modules/helperFunctions';
+import { defaultViewport, duration, takeScreenshot, tempFolder, csvToObj } from '../modules/helperFunctions';
 const router = express.Router();
 
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 20 * 1024 * 1024 // no larger than 10mb, you can change as needed.
+    fileSize: 20 * 1024 * 1024 // no larger than 10mb
   }
 });
 
 const initialJobState = {
   job: {
-    '2FA': {
-      authMethod: '',
-      code: '',
-      defeated: false,
-      has2FA: false,
-    },
-    progress: {
-      percent: 0,
-      processed: 0,
-      total: 0
-    },
+    '2FA': { authMethod: '', code: '', defeated: false, has2FA: false },
+    progress: { percent: 0, processed: 0, total: 0 },
     screenshot: '',
     endpoint: '',
     started: true,
@@ -35,29 +26,19 @@ const initialJobState = {
   }
 }
 
-// const tempFolder = process.env.NODE_ENV === 'production' ? '/tmp' : './tmp';
-// const defaultViewport = { width: 1200, height: 800 };
-// const delay = process.env.NODE_ENV !== 'production' ? 500 : 0;
-
 router.post('/', upload.single('leader-list'), async (req: any, res, next) => {
-  // app.post('/api/start', async (req: any, res, next) => {
-
 
   const d = (new Date()).getTime();
-
-  // const { username, password, shortname, loginredirect, uid } = req.body;
   const { username, password, shortname, loginredirect, uid } = req.body;
 
   // Create the job object in the database
   console.log('Update job');
   db.ref(`users/${uid}`).update(initialJobState);
 
-  // const body = req.body;
+
   console.log('Body', req.body);
   console.log('Files', req.file);
-  // const mappingFiles = req.files['leader-list'];
   const leaderFile = req.file
-  // const mappingFiles = req.files;
 
   // Validate mapping file
   if (leaderFile) {
@@ -90,19 +71,6 @@ router.post('/', upload.single('leader-list'), async (req: any, res, next) => {
     if (err) throw err;
   });
   db.ref(`users/${uid}/job/progress`).update({ total: leaderArr.length });
-
-  // fs.rename(mappingFiles[0].path, `${tempFolder}/${uid}.csv`, function (err) {
-  //   if (err) console.log('ERROR: ' + err);
-  // });
-  // let mappingObj = [];
-  // const csvTextFile = await readFileAsync(mappingFiles[0].path, 'utf8');
-  // mappingObj = csvToObj(csvTextFile);
-  // console.log('Mapping', mappingObj);
-
-  // Cleanup mapping file
-  // fs.unlink(mappingFiles[0].path, (err) => {
-  //   if (err) throw err;
-  // });
 
   console.log('Start the main process');
   console.log('Environment', process.env.NODE_ENV);
@@ -156,45 +124,5 @@ router.post('/', upload.single('leader-list'), async (req: any, res, next) => {
   await browser.disconnect();
   res.json({ result: 'success' });
 });
-
-// Convert CSV To Object Helper Func
-function csvToObj(csv) {
-  const cleanedCsv = csv.replace(/\r/g, '').replace(/^\uFEFF/, '');
-  const lines = cleanedCsv.split('\n');
-  const results = [];
-  const headers = lines[0].split(',');
-
-  for (let i = 1; i < lines.length; i++) {
-    const obj = {};
-    const currentline = lines[i].split(',');
-    for (let j = 0; j < headers.length; j++) {
-      obj[headers[j]] = currentline[j];
-    }
-    results.push(obj);
-  }
-  console.log('Array before grouping', results);
-
-  const empArray = Object.values(results.reduce((result, emp) => {
-    const empId = emp['Employee ID'];
-    const effDate = emp['Effective Date'];
-    const manager = emp['Manager 1'];
-    // Create new group
-    if (!result[empId]) result[empId] = {
-      empId,
-      lines: []
-    };
-    // Append to group
-    result[empId].lines.push({
-      effDate,
-      manager
-    });
-    return result;
-  }, {}));
-
-  empArray.sort((a: any, b: any) => Number(a.empId) - Number(b.empId));
-
-  return empArray;
-  // return groupBy(result, 'Employee ID');
-}
 
 export default router;
