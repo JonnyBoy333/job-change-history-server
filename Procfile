@@ -1,1 +1,1 @@
-web: node lib/index
+web: node index
