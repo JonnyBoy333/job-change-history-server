@@ -4,6 +4,7 @@
     "lint": "tslint --project tsconfig.json",
     "build": "tsc",
     "start": "node lib/index.js",
+    "dev": "nodemon",
     "deploy": "gcloud app deploy",
     "logs": "gcloud app logs tail -s default",
     "open": "cloud app browse"
@@ -19,7 +20,8 @@
     "content-type": "^1.0.4",
     "express": "^4.16.3",
     "firebase-admin": "^5.13.1",
-    "puppeteer": "^1.7.0",
+    "multer": "^1.3.1",
+    "puppeteer": "https://github.com/pomerantsev/puppeteer.git#frame-navigation",
     "raw-body": "^2.3.3",
     "typescript": "~2.8.3"
   },
