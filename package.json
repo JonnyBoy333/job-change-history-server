@@ -14,15 +14,10 @@
     "node": "8"
   },
   "dependencies": {
-    "@google-cloud/storage": "^1.7.0",
-    "body-parser": "^1.18.3",
-    "busboy": "^0.2.14",
-    "content-type": "^1.0.4",
     "express": "^4.16.3",
     "firebase-admin": "^5.13.1",
     "multer": "^1.3.1",
-    "puppeteer": "https://github.com/pomerantsev/puppeteer.git#frame-navigation",
-    "raw-body": "^2.3.3",
+    "puppeteer": "git+https://github.com/pomerantsev/puppeteer.git#frame-navigation",
     "typescript": "~2.8.3"
   },
   "devDependencies": {
