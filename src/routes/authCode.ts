@@ -98,7 +98,7 @@ router.get('/', async (req, res, next) => {
     const menuBodyFrameIndex = frameNames.indexOf('ADMIN_MENU_BODY');
     const menuBodyFrame = frames[menuBodyFrameIndex];
 
-    const adminFrameNavigation = adminFrame.waitForNavigation();
+    const adminFrameNavigation = adminFrame.waitForNavigation({ waitUntil: 'networkidle0' });
     await menuBodyFrame.click('#HM_Item2_1');
     await adminFrameNavigation;
     await takeScreenshot(uid, page);

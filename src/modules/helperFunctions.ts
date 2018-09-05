@@ -42,7 +42,6 @@ function csvToObj(csv) {
     }
     results.push(obj);
   }
-  console.log('Array before grouping', results);
 
   const empArray = Object.values(results.reduce((result, emp) => {
     const empId = emp['Employee ID'];
