@@ -24,8 +24,8 @@ router.get('/', async (req, res, next) => {
   db.ref(`users/${uid}/job/canceled`)
     .on('value', (snap) => {
       const val = snap.val();
-      console.log('Job Canceled', val)
       if (val === true) {
+        console.log('Job Canceled', val)
         throw new Error('Job Canceled');
       }
     })
