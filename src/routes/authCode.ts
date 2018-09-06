@@ -21,14 +21,14 @@ router.get('/', async (req, res, next) => {
   db.ref(`users/${uid}/job/2FA`).update({ code: authcode });
 
   // Listen for job cancel
-  db.ref(`users/${uid}/job/canceled`)
-    .on('value', (snap) => {
-      const val = snap.val();
-      console.log('Job Canceled', val)
-      if (val === true) {
-        throw new Error('Job Canceled');
-      }
-    })
+  // db.ref(`users/${uid}/job/canceled`)
+  //   .on('value', (snap) => {
+  //     const val = snap.val();
+  //     if (val === true) {
+  //       console.log('Job Canceled', val)
+  //       throw new Error('Job Canceled');
+  //     }
+  //   })
 
   const job = await db.ref(`users/${uid}/job`).once('value').then(snap => snap.val());
   const endpoint = job.endpoint;
@@ -104,7 +104,7 @@ router.get('/', async (req, res, next) => {
     const menuBodyFrameIndex = frameNames.indexOf('ADMIN_MENU_BODY');
     const menuBodyFrame = frames[menuBodyFrameIndex];
 
-    const adminFrameNavigation = adminFrame.waitForNavigation();
+    const adminFrameNavigation = adminFrame.waitForNavigation({ waitUntil: 'networkidle0' });
     await menuBodyFrame.click('#HM_Item2_1');
     await adminFrameNavigation;
     await takeScreenshot(uid, page);
@@ -113,9 +113,20 @@ router.get('/', async (req, res, next) => {
     // Start the employee update loop
     let processed = 0;
     for (const employee of employees) {
-      const lines = employee.lines;
+      const canceled = await db.ref(`users/${uid}/job/canceled`).once('value').then(snap => snap.val());
+      if (canceled) { break }
 
+      // try { await adminFrameNavigation } catch (e) {
+      //   console.log('Error admin navigation', e.message);
+      // }
+
+      const lines = employee.lines;
       const loopStartD = new Date();
+
+      const empListFound = await waitForElement(adminFrame, 'input[name="zAN7M"]');
+      if (!empListFound) {
+        throw new Error('Employee list did not load.')
+      }
 
       // Imput employee ID and refresh
       await adminFrame.evaluate((empId) => {
@@ -144,6 +155,10 @@ router.get('/', async (req, res, next) => {
       }
 
       // Loop through all Job Change History lines
+      const jobChangeListFound = await waitForElement(adminFrame, 'input[name="zAN7M"]');
+      if (!jobChangeListFound) {
+        throw new Error('Job Change list did not load.')
+      }
       for (const line of lines) {
         // Search for job change effective date
         await adminFrame.evaluate((effDate) => {
@@ -173,11 +188,11 @@ router.get('/', async (req, res, next) => {
           const jobChangeFrame = frames[jobChangeFrameIndex];
 
           // Open the Leader 1 employee lookup
-          // const jobChangeNavigation = jobChangeFrame.waitForNavigation({ timeout: 100 });
-          // try { await jobChangeNavigation } catch (e) {
-          //   console.log('Change Leader error', e);
-          // }
-          await sleep(100);
+          // const jobChangeNavigation = jobChangeFrame.waitForNavigation({ timeout: 1000, waitUntil: 'networkidle0' });
+          const empLookupFound = await waitForElement(jobChangeFrame, '#z15AMMA_LKP');
+          if (!empLookupFound) {
+            throw new Error('Employee lookup button not found.')
+          }
           await jobChangeFrame.click('#z15AMMA_LKP');
           await takeScreenshot(uid, page);
 
@@ -191,6 +206,10 @@ router.get('/', async (req, res, next) => {
           const empSelectFrame = frames[employeeSelectFrameIndex];
 
           // Search for manager ID
+          const managerListFound = await waitForElement(empSelectFrame, 'input[name="zAMF6"]');
+          if (!managerListFound) {
+            throw new Error('Manager lookup list did not load.')
+          }
           await empSelectFrame.evaluate((managerId) => {
             (<HTMLInputElement>document.querySelector('input[name="zAMF6"]')).value = managerId;
             (<HTMLInputElement>document.querySelector('a.reloadButton')).click();
@@ -246,5 +265,24 @@ router.get('/', async (req, res, next) => {
   duration(d, 'after completion');
 
 });
+
+async function waitForElement(frame: puppeteer.Frame, selector: string) {
+  if (!frame || !frame.hasOwnProperty('$')){
+    await sleep(100);
+  }
+  let element = await frame.$(selector);
+  let found = false;
+  for (let k = 0; k < 20; k++) {
+    if (!element) {
+      await sleep(100);
+      element = await frame.$(selector);
+    } else {
+      found = true;
+      break;
+    }
+  }
+  console.log(`${selector} found`, found);
+  return found;
+}
 
 export default router;

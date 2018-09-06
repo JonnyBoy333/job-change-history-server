@@ -2,7 +2,7 @@ import { db } from '../firebase';
 
 // Constants
 const defaultViewport = { width: 1200, height: 800 };
-const delay = process.env.NODE_ENV !== 'production' ? 800 : 1000;
+const delay = process.env.NODE_ENV !== 'production' ? 100 : 250;
 const tempFolder = process.env.NODE_ENV === 'production' ? '/tmp' : './tmp';
 
 // How long did this take?
@@ -48,7 +48,7 @@ function csvToObj(csv) {
     const effDate = emp['Effective Date'];
     const manager = emp['Manager 1'];
     // Create new group
-    if (!result[empId]) result[empId] = {
+    if (empId && !result[empId]) result[empId] = {
       empId,
       lines: []
     };
