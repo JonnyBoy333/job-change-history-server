@@ -52,14 +52,15 @@ router.get('/', async (req, res, next) => {
     await page.waitForNavigation();
     await takeScreenshot(uid, page);
     duration(d, 'after sent auth message');
-    res.json({ result: 'success' });
 
     const newEndpoint = browser.wsEndpoint();
     db.ref(`users/${uid}/job`).update({ endpoint: newEndpoint, paused: true });
   } catch (err) {
     console.error(err);
-    res.json({ result: 'error', error: { message: err.message } });
+    // res.json({ result: 'error', error: { message: err.message } });
+    db.ref(`users/${uid}/job`).update({ errored: true, errorMessage: err.message });
   }
+  res.json({ result: 'success' });
 });
 
 export default router;

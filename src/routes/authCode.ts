@@ -3,7 +3,7 @@ import * as puppeteer from 'puppeteer';
 import { db } from '../firebase';
 import * as fs from 'fs';
 import { promisify } from 'util';
-import { defaultViewport, duration, takeScreenshot, tempFolder } from '../modules/helperFunctions';
+import { defaultViewport, duration, takeScreenshot, tempFolder, sleep } from '../modules/helperFunctions';
 const readFileAsync = promisify(fs.readFile);
 const router = express.Router();
 
@@ -24,8 +24,8 @@ router.get('/', async (req, res, next) => {
   db.ref(`users/${uid}/job/canceled`)
     .on('value', (snap) => {
       const val = snap.val();
+      console.log('Job Canceled', val)
       if (val === true) {
-        console.log('Job Canceled', val)
         throw new Error('Job Canceled');
       }
     })
@@ -36,14 +36,19 @@ router.get('/', async (req, res, next) => {
   const browser = await puppeteer.connect({ browserWSEndpoint: endpoint });
   res.json({ result: 'success' });
 
+  // fs.readFile(`${tempFolder}/${uid}.json`, (err, data) => {
+  //   if (err) throw err;
+  //   console.log(data);
+  // });
   // const employees = [{
   //   'Employee ID': '202',
   //   'Effective Date': '07/26/18',
   //   'Manager 1': '223'
   // }];
-
   const text = await readFileAsync(`${tempFolder}/${uid}.json`, { encoding: 'utf8' });
+  console.log('Text', text);
   const employees = JSON.parse(text);
+  console.log('Object', employees);
   try {
 
     let page: puppeteer.Page;
@@ -51,6 +56,7 @@ router.get('/', async (req, res, next) => {
     for (let i = 0; i < pages.length; i++) {
       page = pages[i];
       const content = await page.evaluate(() => document.querySelector('body') ? document.querySelector('body').innerHTML : '');
+      console.log('Content Length', content.length);
       if (content.length > 0) {
         console.log('Showing page', i + 1);
         break;
@@ -98,7 +104,7 @@ router.get('/', async (req, res, next) => {
     const menuBodyFrameIndex = frameNames.indexOf('ADMIN_MENU_BODY');
     const menuBodyFrame = frames[menuBodyFrameIndex];
 
-    const adminFrameNavigation = adminFrame.waitForNavigation({ waitUntil: 'networkidle0' });
+    const adminFrameNavigation = adminFrame.waitForNavigation();
     await menuBodyFrame.click('#HM_Item2_1');
     await adminFrameNavigation;
     await takeScreenshot(uid, page);
@@ -139,7 +145,6 @@ router.get('/', async (req, res, next) => {
 
       // Loop through all Job Change History lines
       for (const line of lines) {
-        
         // Search for job change effective date
         await adminFrame.evaluate((effDate) => {
           (<HTMLInputElement>document.querySelector('input[name="zAN7M"]')).value = effDate;
@@ -168,8 +173,11 @@ router.get('/', async (req, res, next) => {
           const jobChangeFrame = frames[jobChangeFrameIndex];
 
           // Open the Leader 1 employee lookup
-          const jobChangeNavigation = jobChangeFrame.waitForNavigation({ timeout: 100 });
-          try { await jobChangeNavigation } catch (e) { }
+          // const jobChangeNavigation = jobChangeFrame.waitForNavigation({ timeout: 100 });
+          // try { await jobChangeNavigation } catch (e) {
+          //   console.log('Change Leader error', e);
+          // }
+          await sleep(100);
           await jobChangeFrame.click('#z15AMMA_LKP');
           await takeScreenshot(uid, page);
 
@@ -183,12 +191,10 @@ router.get('/', async (req, res, next) => {
           const empSelectFrame = frames[employeeSelectFrameIndex];
 
           // Search for manager ID
-          const empSelectNavigation = empSelectFrame.waitForNavigation({ timeout: 100 });
           await empSelectFrame.evaluate((managerId) => {
             (<HTMLInputElement>document.querySelector('input[name="zAMF6"]')).value = managerId;
             (<HTMLInputElement>document.querySelector('a.reloadButton')).click();
           }, line.manager);
-          try { await empSelectNavigation } catch (e) { }
           await takeScreenshot(uid, page);
 
           // Click the flag and save
@@ -221,7 +227,7 @@ router.get('/', async (req, res, next) => {
       processed++;
       const percent = Math.round((processed / employees.length) * 1000) / 10;
       console.log('Percent Complete', percent);
-      db.ref(`users/${uid}/job/progress`).update({ processed, percent });
+      db.ref(`users/${uid}/job/progress`).update({ processed, percent, currentRec: employee.empId });
       duration(loopStartD, `of employee processing`);
       duration(d, `after ${processed} employee completion`);
     }
@@ -235,6 +241,7 @@ router.get('/', async (req, res, next) => {
 
   } catch (err) {
     console.error(err);
+    db.ref(`users/${uid}/job`).update({ errored: true, errorMessage: err.message });
   }
   duration(d, 'after completion');
 

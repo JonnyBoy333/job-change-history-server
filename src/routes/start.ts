@@ -22,7 +22,8 @@ const initialJobState = {
     started: true,
     canceled: false,
     paused: false,
-    errored: false
+    errored: false,
+    errorMessage: ''
   }
 }
 
@@ -116,7 +117,8 @@ router.post('/', upload.single('leader-list'), async (req: any, res, next) => {
     }
   } catch (err) {
     console.error(err);
-    res.json({ result: 'error', error: { message: err.message } });
+    // res.json({ result: 'error', error: { message: err.message } });
+    db.ref(`users/${uid}/job`).update({ errored: true, errorMessage: err.message });
   }
   await browser.disconnect();
   res.json({ result: 'success' });
